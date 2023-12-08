@@ -3,35 +3,33 @@ defmodule Day07 do
   def part1(input), do: solve(input, false)
   def part2(input), do: solve(input, true)
 
-  defp solve(input, use_jokers) do
+  defp solve(input, enhance_hands) do
     input
     |> parse()
-    |> Enum.sort(&compare(&1, &2, use_jokers))
+    |> Enum.sort(&compare(&1, &2, enhance_hands))
     |> Enum.with_index(1)
     |> Enum.map(fn {%{bid: bid}, index} -> bid * index end)
     |> Enum.sum()
   end
 
-  defp compare(%{hand: hand_one}, %{hand: hand_two}, use_jokers) do
-    eval_func = if(use_jokers, do: &eval_hand_with_jokers(&1), else: &eval_hand(&1))
-
-    score_one = eval_func.(hand_one)
-    score_two = eval_func.(hand_two)
+  defp compare(%{hand: hand_one}, %{hand: hand_two}, enhance_hands) do
+    score_one = eval_hand(hand_one, enhance_hands)
+    score_two = eval_hand(hand_two, enhance_hands)
 
     if score_one == score_two do
-      compare_by_order(hand_one, hand_two, use_jokers)
+      compare_by_order(hand_one, hand_two, enhance_hands)
     else
       score_one < score_two
     end
   end
 
-  defp compare_by_order(<<a>> <> r1, <<b>> <> r2, use_jokers) when a == b, do: compare_by_order(r1, r2, use_jokers)
-  defp compare_by_order(<<a::binary-size(1)>> <> _, <<b::binary-size(1)>> <> _, use_jokers) do
-    card_strength(a, use_jokers) < card_strength(b, use_jokers)
+  defp compare_by_order(<<a>> <> r1, <<b>> <> r2, enhance_hands) when a == b, do: compare_by_order(r1, r2, enhance_hands)
+  defp compare_by_order(<<a::binary-size(1)>> <> _, <<b::binary-size(1)>> <> _, enhance_hands) do
+    card_strength(a, enhance_hands) < card_strength(b, enhance_hands)
   end
 
-  defp card_strength(card, use_jokers) do
-    special_cards_strength = %{"A" => 14, "K" => 13, "Q" => 12, "J" => joker_strength(use_jokers), "T" => 10}
+  defp card_strength(card, enhance_hands) do
+    special_cards_strength = %{"A" => 14, "K" => 13, "Q" => 12, "J" => joker_strength(enhance_hands), "T" => 10}
 
     case Map.fetch(special_cards_strength, card) do
       {:ok, value} -> value
@@ -42,24 +40,12 @@ defmodule Day07 do
   defp joker_strength(true), do: 1
   defp joker_strength(false), do: 11
 
-  defp eval_hand_with_jokers(hand) do
+  defp eval_hand(hand, true) do
     hand
-    |> get_combinations("")
-    |> List.flatten()
-    |> Enum.map(&eval_hand/1)
-    |> Enum.max()
+    |> enhance_hand()
+    |> eval_hand(false)
   end
-
-  defp get_combinations("", start), do: [start]
-  defp get_combinations("J" <> rest, start) do
-    start <> rest
-    |> String.graphemes()
-    |> Enum.uniq()
-    |> Enum.map(&get_combinations(rest, start <> &1))
-  end
-  defp get_combinations(<<a>> <> rest, start), do: get_combinations(rest, start <> <<a>>)
-
-  defp eval_hand(hand) do
+  defp eval_hand(hand, false) do
     card_count = hand
     |> String.graphemes()
     |> Enum.group_by(& &1)
@@ -74,6 +60,22 @@ defmodule Day07 do
       [%{count: 2}, %{count: 2}, _] -> 3
       [%{count: 2} | _ ] -> 2
       _ -> 1
+    end
+  end
+
+  defp enhance_hand(hand) do
+    if String.contains?(hand, "J") do
+      replace_with =
+        hand
+        |> String.graphemes()
+        |> Enum.filter(& &1 != "J")
+        |> Enum.group_by(& &1)
+        |> Enum.max_by(fn {_, x} -> Enum.count(x) end, fn -> {"A", 0} end)
+        |> elem(0)
+
+      String.replace(hand, "J", replace_with)
+    else
+      hand
     end
   end
 
