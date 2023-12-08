@@ -26,7 +26,9 @@ defmodule Day07 do
   end
 
   defp compare_by_order(<<a>> <> r1, <<b>> <> r2, use_jokers) when a == b, do: compare_by_order(r1, r2, use_jokers)
-  defp compare_by_order(<<a>> <> _, <<b>> <> _, use_jokers), do: card_strength(<<a>>, use_jokers) < card_strength(<<b>>, use_jokers)
+  defp compare_by_order(<<a::binary-size(1)>> <> _, <<b::binary-size(1)>> <> _, use_jokers) do
+    card_strength(a, use_jokers) < card_strength(b, use_jokers)
+  end
 
   defp card_strength(card, use_jokers) do
     special_cards_strength = %{"A" => 14, "K" => 13, "Q" => 12, "J" => joker_strength(use_jokers), "T" => 10}
